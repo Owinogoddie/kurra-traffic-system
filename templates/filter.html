@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Filter — Kurra Traffic{% endblock %}
+{% block nav_filter %}active{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="section">
+        <div class="section-title">Filter journeys</div>
+
+        <div class="filter-grid">
+            <div class="fg">
+                <label>Camera</label>
+                <select id="f-cam">
+                    <option value="">All cameras</option>
+                    <option value="cam_101">Cam 101</option>
+                    <option value="cam_102">Cam 102</option>
+                    <option value="cam_103">Cam 103</option>
+                    <option value="cam_104">Cam 104</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Vehicle type</label>
+                <select id="f-veh">
+                    <option value="">All vehicles</option>
+                    <option value="car">Car</option>
+                    <option value="truck">Truck</option>
+                    <option value="bus">Bus</option>
+                    <option value="motorcycle">Motorcycle</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>From road</label>
+                <select id="f-from">
+                    <option value="">Any</option>
+                    <option value="town">Town</option>
+                    <option value="ngong">Ngong</option>
+                    <option value="5th_ave">5th Avenue</option>
+                    <option value="hospital">Hospital</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>To road</label>
+                <select id="f-to">
+                    <option value="">Any</option>
+                    <option value="town">Town</option>
+                    <option value="ngong">Ngong</option>
+                    <option value="5th_ave">5th Avenue</option>
+                    <option value="hospital">Hospital</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Date from</label>
+                <input type="date" id="f-df">
+            </div>
+            <div class="fg">
+                <label>Date to</label>
+                <input type="date" id="f-dt">
+            </div>
+            <div class="fg">
+                <label>Time from</label>
+                <input type="time" id="f-tf">
+            </div>
+            <div class="fg">
+                <label>Time to</label>
+                <input type="time" id="f-tt">
+            </div>
+        </div>
+
+        <div class="filter-btns">
+            <button class="btn btn-primary"   onclick="search()">Search</button>
+            <button class="btn btn-secondary" onclick="clear()">Clear</button>
+        </div>
+
+        <div class="result-count" id="count"></div>
+
+        <div style="overflow-x:auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Time</th><th>Camera</th>
+                        <th>Vehicle</th><th>Journey</th><th>Track ID</th>
+                    </tr>
+                </thead>
+                <tbody id="results">
+                    <tr><td colspan="5" style="text-align:center;color:#444;padding:28px;">
+                        Select filters and click Search
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const RL = {town:'Town',ngong:'Ngong','5th_ave':'5th Ave',hospital:'Hospital'}
+const today = new Date().toISOString().split('T')[0]
+document.getElementById('f-df').value = today
+document.getElementById('f-dt').value = today
+
+function badge(v) {
+    return `<span class="badge badge-${v}">${v}</span>`
+}
+
+function rowHtml(j) {
+    const from = RL[j.from_road] || j.from_road
+    const to   = RL[j.to_road]   || j.to_road
+    return `<tr>
+        <td>${new Date(j.timestamp).toLocaleString()}</td>
+        <td>${j.camera_id}</td>
+        <td>${badge(j.vehicle_type)}</td>
+        <td>
+            <span style="color:var(--c-text-muted)">${from}</span>
+            <span class="journey-arrow"> → </span>
+            <span>${to}</span>
+        </td>
+        <td style="color:#444">#${j.track_id}</td>
+    </tr>`
+}
+
+async function search() {
+    const p = new URLSearchParams()
+    const map = {
+        camera_id:'f-cam', vehicle_type:'f-veh',
+        from_road:'f-from', to_road:'f-to',
+        date_from:'f-df',   date_to:'f-dt',
+        time_from:'f-tf',   time_to:'f-tt'
+    }
+    Object.entries(map).forEach(([k,id]) => {
+        const v = document.getElementById(id).value
+        if (v) p.append(k, v)
+    })
+
+    document.getElementById('count').textContent = 'Searching...'
+    const data = await fetch(`/api/filter?${p}`).then(r=>r.json())
+
+    document.getElementById('count').textContent =
+        `Found ${data.length} result${data.length !== 1 ? 's' : ''}`
+
+    document.getElementById('results').innerHTML = data.length
+        ? data.map(rowHtml).join('')
+        : '<tr><td colspan="5" style="text-align:center;color:#444;padding:28px;">No results found</td></tr>'
+}
+
+function clear() {
+    ['f-cam','f-veh','f-from','f-to','f-tf','f-tt'].forEach(id => {
+        document.getElementById(id).value = ''
+    })
+    document.getElementById('f-df').value = today
+    document.getElementById('f-dt').value = today
+    document.getElementById('results').innerHTML =
+        '<tr><td colspan="5" style="text-align:center;color:#444;padding:28px;">Select filters and click Search</td></tr>'
+    document.getElementById('count').textContent = ''
+}
+</script>
+{% endblock %}

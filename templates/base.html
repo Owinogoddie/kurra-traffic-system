@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Kurra Traffic{% endblock %}</title>
+    <link rel="stylesheet" href="/static/theme.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font);
+            font-size: var(--font-size-base);
+            background: var(--c-bg);
+            color: var(--c-text);
+            min-height: 100vh;
+        }
+
+        /* NAV */
+        nav {
+            background: var(--c-nav-bg);
+            border-bottom: 1.5px solid var(--c-nav-border);
+            height: var(--c-nav-h);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-brand {
+            color: var(--c-accent);
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-right: 28px;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        .nav-links { display: flex; gap: 2px; }
+        .nav-links a {
+            color: var(--c-text-muted);
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            transition: all 0.15s;
+        }
+        .nav-links a:hover { color: var(--c-text); background: var(--c-border); }
+        .nav-links a.active {
+            color: var(--c-accent);
+            background: var(--c-accent-dim);
+        }
+        .nav-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .nav-time { font-size: 0.76rem; color: var(--c-text-muted); }
+        .live-badge {
+            background: var(--c-accent);
+            color: var(--c-text-dark);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.55; }
+        }
+
+        /* PAGE */
+        .page {
+            padding: 22px 24px;
+            max-width: 1360px;
+            margin: 0 auto;
+        }
+
+        /* SECTION */
+        .section {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: 18px;
+        }
+        .section-title {
+            font-size: 0.85rem;
+            color: var(--c-accent);
+            font-weight: 500;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .section-title span {
+            font-size: 0.72rem;
+            color: var(--c-text-muted);
+            font-weight: 400;
+        }
+
+        /* STAT CARDS */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .stat-card {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            text-align: center;
+        }
+        .stat-card .val {
+            font-size: 2rem;
+            font-weight: 500;
+            color: var(--c-accent);
+            line-height: 1.1;
+        }
+        .stat-card .lbl {
+            font-size: 0.72rem;
+            color: var(--c-text-muted);
+            margin-top: 5px;
+        }
+
+        /* CHARTS GRID */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .chart-box {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+        }
+        .chart-title {
+            font-size: 0.85rem;
+            color: var(--c-accent);
+            font-weight: 500;
+            margin-bottom: 14px;
+        }
+        canvas { max-height: 260px; }
+
+        /* DATA TABLE */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        .data-table th {
+            background: var(--c-bg);
+            padding: 9px 13px;
+            text-align: left;
+            color: var(--c-text-muted);
+            font-weight: 400;
+            border-bottom: 1px solid var(--c-border);
+        }
+        .data-table td {
+            padding: 9px 13px;
+            border-bottom: 1px solid #1e2130;
+        }
+        .data-table tr:hover td { background: #1e2130; }
+        .data-table .new-row td { animation: hl 2.5s ease-out; }
+        @keyframes hl {
+            0%   { background: rgba(0,201,122,0.15); }
+            100% { background: transparent; }
+        }
+
+        /* FLOW TABLE */
+        .flow-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        .flow-table th, .flow-table td {
+            padding: 9px 13px;
+            text-align: center;
+            border: 1px solid var(--c-border);
+        }
+        .flow-table th        { background: var(--c-bg); color: var(--c-accent); font-weight: 400; }
+        .flow-table .row-lbl  { background: var(--c-bg); color: var(--c-text-muted); text-align: left; }
+        .flow-table .zero     { color: #333; }
+        .flow-table .high     { background: var(--c-accent-dim); color: var(--c-accent); font-weight: 500; }
+
+        /* BADGES */
+        .badge {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+        .badge-car        { background: rgba(0,201,122,0.15);  color: var(--c-car); }
+        .badge-truck      { background: rgba(255,100,100,0.15); color: var(--c-truck); }
+        .badge-bus        { background: rgba(255,165,0,0.15);   color: var(--c-bus); }
+        .badge-motorcycle { background: rgba(167,139,250,0.15); color: var(--c-motorcycle); }
+        .badge-unknown    { background: rgba(128,128,128,0.15); color: #888; }
+
+        .journey-arrow { color: var(--c-accent); font-weight: 600; }
+
+        /* FILTER FORM */
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .fg label {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--c-text-muted);
+            margin-bottom: 5px;
+        }
+        .fg select, .fg input {
+            width: 100%;
+            background: var(--c-bg);
+            border: 1px solid var(--c-border);
+            color: var(--c-text);
+            padding: 7px 11px;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            outline: none;
+            font-family: var(--font);
+        }
+        .fg select:focus, .fg input:focus { border-color: var(--c-accent); }
+
+        .filter-btns { display: flex; gap: 10px; margin-bottom: 14px; }
+        .btn {
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            border: none;
+            font-size: 0.82rem;
+            cursor: pointer;
+            font-weight: 500;
+            font-family: var(--font);
+        }
+        .btn-primary   { background: var(--c-accent); color: var(--c-text-dark); }
+        .btn-secondary { background: var(--c-border);  color: var(--c-text); }
+        .btn:hover { opacity: 0.85; }
+
+        .result-count {
+            font-size: 0.76rem;
+            color: var(--c-text-muted);
+            margin-bottom: 10px;
+        }
+
+        /* SNAP GRID */
+        .snap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+        }
+        .snap-card {
+            background: var(--c-bg);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .snap-card img {
+            width: 100%;
+            display: block;
+            border-bottom: 1px solid var(--c-border);
+            min-height: 160px;
+            object-fit: cover;
+        }
+        .snap-info {
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .snap-cam   { font-weight: 500; color: var(--c-accent); font-size: 0.82rem; }
+        .snap-time  { font-size: 0.72rem; color: var(--c-text-muted); }
+        .snap-offline {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 160px;
+            color: #333;
+            font-size: 0.82rem;
+            gap: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .stats-row   { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-brand">Kurra Traffic</div>
+    <div class="nav-links">
+        <a href="/"          class="{% block nav_live %}{% endblock %}">Live</a>
+        <a href="/snapshots" class="{% block nav_snap %}{% endblock %}">Cameras</a>
+        <a href="/filter"    class="{% block nav_filter %}{% endblock %}">Filter</a>
+    </div>
+    <div class="nav-right">
+        <span class="nav-time" id="clock"></span>
+        <span class="live-badge">● LIVE</span>
+    </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<script>
+    function tick() {
+        document.getElementById('clock').textContent =
+            new Date().toLocaleTimeString()
+    }
+    tick()
+    setInterval(tick, 1000)
+</script>
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

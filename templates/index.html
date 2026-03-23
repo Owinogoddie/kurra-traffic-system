@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Live — Kurra Traffic{% endblock %}
+{% block nav_live %}active{% endblock %}
+
+{% block content %}
+<div class="page">
+
+    <div class="stats-row">
+        <div class="stat-card"><div class="val" id="s-total">—</div><div class="lbl">Total today</div></div>
+        <div class="stat-card"><div class="val" id="s-car">—</div><div class="lbl">Cars</div></div>
+        <div class="stat-card"><div class="val" id="s-truck">—</div><div class="lbl">Trucks</div></div>
+        <div class="stat-card"><div class="val" id="s-bus">—</div><div class="lbl">Buses</div></div>
+        <div class="stat-card"><div class="val" id="s-moto">—</div><div class="lbl">Motorcycles</div></div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-box">
+            <div class="chart-title">Vehicle counts per road — today</div>
+            <canvas id="countsChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <div class="chart-title">Hourly traffic — today</div>
+            <canvas id="hourlyChart"></canvas>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Journey flow — today</div>
+        <div style="overflow-x:auto;">
+            <table class="flow-table">
+                <thead>
+                    <tr>
+                        <th>From \ To</th>
+                        <th>Town</th><th>Ngong</th>
+                        <th>5th Ave</th><th>Hospital</th>
+                    </tr>
+                </thead>
+                <tbody id="flow-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">
+            Live journey feed
+            <span>last 30 — auto refreshes every 5s</span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Time</th><th>Camera</th>
+                        <th>Vehicle</th><th>Journey</th><th>Track ID</th>
+                    </tr>
+                </thead>
+                <tbody id="live-feed"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ROADS = ['town','ngong','5th_ave','hospital']
+const RL    = {town:'Town',ngong:'Ngong','5th_ave':'5th Ave',hospital:'Hospital'}
+let lastId  = 0
+
+const chartDefaults = {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+        x: { ticks:{ color:'#666' }, grid:{ color:'#2a2d3a' } },
+        y: { ticks:{ color:'#666' }, grid:{ color:'#2a2d3a' }, beginAtZero: true }
+    }
+}
+
+const countsChart = new Chart(document.getElementById('countsChart'), {
+    type: 'bar',
+    data: { labels:[], datasets:[{
+        data:[], backgroundColor:'rgba(0,201,122,0.2)',
+        borderColor:'#00c97a', borderWidth:2, borderRadius:5
+    }]},
+    options: chartDefaults
+})
+
+const hourlyChart = new Chart(document.getElementById('hourlyChart'), {
+    type: 'line',
+    data: { labels:[], datasets:[{
+        data:[], borderColor:'#00c97a',
+        backgroundColor:'rgba(0,201,122,0.1)',
+        fill:true, tension:0.4,
+        pointBackgroundColor:'#00c97a', pointRadius:3
+    }]},
+    options: chartDefaults
+})
+
+function badge(v) {
+    return `<span class="badge badge-${v}">${v}</span>`
+}
+
+function rowHtml(j, isNew) {
+    const from = RL[j.from_road] || j.from_road
+    const to   = RL[j.to_road]   || j.to_road
+    const t    = new Date(j.timestamp).toLocaleString()
+    return `<tr class="${isNew?'new-row':''}">
+        <td>${t}</td>
+        <td>${j.camera_id}</td>
+        <td>${badge(j.vehicle_type)}</td>
+        <td>
+            <span style="color:var(--c-text-muted)">${from}</span>
+            <span class="journey-arrow"> → </span>
+            <span>${to}</span>
+        </td>
+        <td style="color:#444">#${j.track_id}</td>
+    </tr>`
+}
+
+async function refresh() {
+    try {
+        const [jd, cd, hd, fd] = await Promise.all([
+            fetch('/api/journeys').then(r=>r.json()),
+            fetch('/api/counts').then(r=>r.json()),
+            fetch('/api/hourly').then(r=>r.json()),
+            fetch('/api/flow').then(r=>r.json()),
+        ])
+
+        document.getElementById('s-total').textContent = jd.today_total || 0
+        document.getElementById('s-car').textContent   = jd.by_type?.car || 0
+        document.getElementById('s-truck').textContent = jd.by_type?.truck || 0
+        document.getElementById('s-bus').textContent   = jd.by_type?.bus || 0
+        document.getElementById('s-moto').textContent  = jd.by_type?.motorcycle || 0
+
+        document.getElementById('live-feed').innerHTML =
+            jd.journeys.map(j => rowHtml(j, j.id > lastId && lastId !== 0)).join('')
+        if (jd.journeys.length) lastId = jd.journeys[0].id
+
+        countsChart.data.labels = cd.map(d => RL[d.road] || d.road)
+        countsChart.data.datasets[0].data = cd.map(d => d.count)
+        countsChart.update()
+
+        hourlyChart.data.labels = hd.map(d => d.hour + ':00')
+        hourlyChart.data.datasets[0].data = hd.map(d => d.count)
+        hourlyChart.update()
+
+        document.getElementById('flow-body').innerHTML = ROADS.map(from => {
+            const cells = ROADS.map(to => {
+                if (from === to) return '<td class="zero">—</td>'
+                const n   = fd[from]?.[to] || 0
+                const cls = n === 0 ? 'zero' : n > 20 ? 'high' : ''
+                return `<td class="${cls}">${n}</td>`
+            }).join('')
+            return `<tr><td class="row-lbl">${RL[from]}</td>${cells}</tr>`
+        }).join('')
+
+    } catch(e) { console.error('Refresh error:', e) }
+}
+
+refresh()
+setInterval(refresh, 5000)
+</script>
+{% endblock %}

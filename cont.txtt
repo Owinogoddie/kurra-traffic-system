@@ -1,0 +1,14 @@
+
+bashcd ~/KURRA/traffic-system
+source venv_traffic/bin/activate
+python3 main.py
+Terminal 2 — Dashboard:
+bashcd ~/KURRA/traffic-system
+source venv_traffic/bin/activate
+uvicorn dashboard:app --host 0.0.0.0 --port 8000 --reload
+Terminal 3 — ngrok tunnel:
+bashngrok http 8000
+
+
+cd ~/KURRA/traffic-system
+./start.sh

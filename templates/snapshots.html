@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Cameras — Kurra Traffic{% endblock %}
+{% block nav_snap %}active{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="section">
+        <div class="section-title">
+            Camera snapshots
+            <span>updates every 5s</span>
+        </div>
+        <div class="snap-grid" id="snap-grid"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CAMS = [
+    { id:'cam_101', label:'Cam 101 — Junction main' },
+    { id:'cam_102', label:'Cam 102 — 5th Avenue' },
+    { id:'cam_103', label:'Cam 103 — Ngong side' },
+    { id:'cam_104', label:'Cam 104 — Hospital side' },
+]
+
+function render() {
+    document.getElementById('snap-grid').innerHTML = CAMS.map(c => `
+        <div class="snap-card">
+            <img
+                src="/api/snapshot/${c.id}?t=${Date.now()}"
+                alt="${c.label}"
+                onerror="this.outerHTML='<div class=snap-offline>No snapshot yet<small>${c.label}</small></div>'"
+            >
+            <div class="snap-info">
+                <span class="snap-cam">${c.label}</span>
+                <span class="snap-time">${new Date().toLocaleTimeString()}</span>
+            </div>
+        </div>
+    `).join('')
+}
+
+render()
+setInterval(render, 5000)
+</script>
+{% endblock %}
