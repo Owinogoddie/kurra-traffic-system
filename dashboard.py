@@ -1,4 +1,3 @@
-# dashboard.py
 import os
 from typing import Optional
 from fastapi import FastAPI, Request
@@ -7,8 +6,11 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+from config import JOURNEY_OWNERSHIP  # source of truth is config.py
+
 
 load_dotenv()
+
 
 app       = FastAPI()
 app.mount("/static", StaticFiles(directory="templates"), name="static")
@@ -17,18 +19,22 @@ engine    = create_engine(os.getenv("DATABASE_URL"), pool_pre_ping=True, pool_si
 
 SNAPSHOT_DIR = "snapshots"
 
+
 # ── PAGES ──
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+
 @app.get("/snapshots", response_class=HTMLResponse)
 async def snapshots_page(request: Request):
     return templates.TemplateResponse("snapshots.html", {"request": request})
 
+
 @app.get("/filter", response_class=HTMLResponse)
 async def filter_page(request: Request):
     return templates.TemplateResponse("filter.html", {"request": request})
+
 
 # ── SNAPSHOT IMAGE ──
 @app.get("/api/snapshot/{camera_id}")
@@ -39,6 +45,7 @@ async def get_snapshot(camera_id: str):
     return FileResponse("snapshots/placeholder.jpg", media_type="image/jpeg") \
         if os.path.exists("snapshots/placeholder.jpg") \
         else HTMLResponse("No snapshot", status_code=404)
+
 
 # ── API: LIVE FEED + STATS ──
 @app.get("/api/journeys")
@@ -80,6 +87,7 @@ async def get_journeys():
             "by_type":     {r.vehicle_type: r.cnt for r in type_rows},
         }
 
+
 # ── API: COUNTS PER ROAD ──
 @app.get("/api/counts")
 async def get_counts():
@@ -91,6 +99,7 @@ async def get_counts():
             GROUP BY from_road ORDER BY count DESC
         """)).fetchall()
         return [{"road": r.road, "count": r.count} for r in rows]
+
 
 # ── API: HOURLY ──
 @app.get("/api/hourly")
@@ -104,6 +113,7 @@ async def get_hourly():
             GROUP BY hour ORDER BY hour
         """)).fetchall()
         return [{"hour": r.hour, "count": r.count} for r in rows]
+
 
 # ── API: FLOW ──
 @app.get("/api/flow")
@@ -121,6 +131,7 @@ async def get_flow():
                 flow[r.from_road] = {}
             flow[r.from_road][r.to_road] = r.count
         return flow
+
 
 # ── API: FILTER ──
 @app.get("/api/filter")

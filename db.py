@@ -1,16 +1,18 @@
-# db.py
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 
+
 load_dotenv()
+
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine      = create_engine(DATABASE_URL, pool_pre_ping=True)
-Base        = declarative_base()
+
+engine       = create_engine(DATABASE_URL, pool_pre_ping=True)
+Base         = declarative_base()
 SessionLocal = sessionmaker(bind=engine)
 
 

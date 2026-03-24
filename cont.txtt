@@ -12,3 +12,31 @@ bashngrok http 8000
 
 cd ~/KURRA/traffic-system
 ./start.sh
+
+git config --global user.name "Owinogoddie"
+git config --global user.email "owinogoddie@gmailcom"
+
+ssh-keygen -t ed25519 -C "owinogoddie@gmail.com"
+cat ~/.ssh/id_ed25519.pub
+
+git remote add origin git@github.com:Owinogoddie/kurra-traffic-system.git
+git branch -M main
+git push -u origin main
+
+
+bashsudo nano /etc/systemd/system/kurra.service
+ini[Unit]
+Description=Kurra Traffic System
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=jichosmart
+WorkingDirectory=/home/jichosmart/KURRA/traffic-system
+ExecStart=/bin/bash start.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+bashsudo systemctl enable kurra
+sudo systemctl start kurra

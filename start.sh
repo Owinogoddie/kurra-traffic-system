@@ -9,17 +9,35 @@ mkdir -p snapshots
 fuser -k 8000/tcp 2>/dev/null
 sleep 1
 
-# ── AI DETECTION ──
-echo "Starting AI detection..."
-python3 main.py &
-MAIN_PID=$!
-sleep 2
+# ============================================
+# AI DETECTION
+# ── MULTI-CAMERA MODE (default) ──
+#    Runs all cameras defined in config.CAMERAS in parallel.
+#    To remove a camera: comment it out in config.py — nothing to change here.
+#
+# ── SINGLE-CAMERA MODE ──
+#    If you want just one camera (e.g. for testing), comment out the
+#    run_all.py line below and uncomment the main.py line.
+#    Then set ACTIVE_CAMERA in config.py to whichever camera you want.
+# ============================================
 
+echo "Starting AI detection..."
+
+# MULTI-CAMERA (comment this out if switching to single-camera)
+python3 run_all.py &
+MAIN_PID=$!
+
+# SINGLE-CAMERA (uncomment this and comment out run_all.py above)
+# python3 main.py &
+# MAIN_PID=$!
+
+sleep 3
 if ! kill -0 $MAIN_PID 2>/dev/null; then
-    echo "❌ main.py failed to start — aborting"
+    echo "❌ Detection failed to start — aborting"
     exit 1
 fi
 echo "✅ Detection running (PID $MAIN_PID)"
+
 sleep 3
 
 # ── DASHBOARD ──
