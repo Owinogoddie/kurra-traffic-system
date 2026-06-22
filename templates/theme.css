@@ -1,0 +1,45 @@
+/* ============================================
+   KURRA TRAFFIC — THEME FILE
+   Change colors here to retheme everything
+   ============================================ */
+
+:root {
+    /* Main colors */
+    --c-bg:          #0f1117;       /* page background */
+    --c-surface:     #1a1d27;       /* cards, sections */
+    --c-border:      #2a2d3a;       /* borders */
+    --c-accent:      #00c97a;       /* green — primary color */
+    --c-accent-dim:  rgba(0,201,122,0.12); /* accent background tint */
+
+    /* Text */
+    --c-text:        #e0e0e0;       /* primary text */
+    --c-text-muted:  #666666;       /* secondary text */
+    --c-text-dark:   #0f1117;       /* text on accent background */
+
+    /* Vehicle badge colors */
+    --c-car:         #00c97a;
+    --c-truck:       #ff6464;
+    --c-bus:         #ffa500;
+    --c-motorcycle:  #a78bfa;
+
+    /* Nav */
+    --c-nav-bg:      #1a1d27;
+    --c-nav-border:  #00c97a;       /* bottom border on nav */
+    --c-nav-h:       52px;
+
+    /* Typography */
+    --font:          'Segoe UI', system-ui, sans-serif;
+    --font-size-base: 14px;
+
+    /* Radius */
+    --radius:        10px;
+    --radius-sm:     7px;
+}
+
+/* ============================================
+   TO CHANGE THEME:
+   Dark blue  → --c-accent: #3b9eff; --c-nav-border: #3b9eff;
+   Purple     → --c-accent: #a78bfa; --c-nav-border: #a78bfa;
+   Light mode → --c-bg: #f5f5f5; --c-surface: #fff;
+                 --c-text: #111; --c-border: #e0e0e0;
+   ============================================ */
