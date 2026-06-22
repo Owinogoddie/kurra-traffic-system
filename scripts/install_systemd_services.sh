@@ -13,6 +13,17 @@ if [[ -f "$REPO_DIR/.env" ]]; then
   fi
 fi
 
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  echo "Warning: PYTHON_BIN is not executable: $PYTHON_BIN"
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3)"
+    echo "Falling back to: $PYTHON_BIN"
+  else
+    echo "Error: python3 not found in PATH and PYTHON_BIN is invalid."
+    exit 1
+  fi
+fi
+
 render_unit() {
   local src="$1"
   local dst="$2"
