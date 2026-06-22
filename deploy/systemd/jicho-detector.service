@@ -5,16 +5,16 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=tinybeaver
-WorkingDirectory=/home/tinybeaver/traffic_system
+User=__SERVICE_USER__
+WorkingDirectory=__REPO_DIR__
 Environment=PYTHON_BIN=/usr/bin/python3
-EnvironmentFile=/home/tinybeaver/traffic_system/.env
+EnvironmentFile=__REPO_DIR__/.env
 Environment=RUN_DASHBOARD_IN_MAIN=0
-ExecStart=${PYTHON_BIN} /home/tinybeaver/traffic_system/main.py
+ExecStart=${PYTHON_BIN} __REPO_DIR__/main.py
 Restart=always
 RestartSec=5
-StandardOutput=append:/home/tinybeaver/traffic_system/logs/detector.log
-StandardError=append:/home/tinybeaver/traffic_system/logs/detector.log
+StandardOutput=append:__REPO_DIR__/logs/detector.log
+StandardError=append:__REPO_DIR__/logs/detector.log
 
 [Install]
 WantedBy=multi-user.target

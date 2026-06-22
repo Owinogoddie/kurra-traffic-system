@@ -5,17 +5,17 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=tinybeaver
-WorkingDirectory=/home/tinybeaver/traffic_system
+User=__SERVICE_USER__
+WorkingDirectory=__REPO_DIR__
 Environment=PYTHON_BIN=/usr/bin/python3
 Environment=DASHBOARD_HOST=0.0.0.0
 Environment=DASHBOARD_PORT=3000
-EnvironmentFile=/home/tinybeaver/traffic_system/.env
+EnvironmentFile=__REPO_DIR__/.env
 ExecStart=${PYTHON_BIN} -m uvicorn dashboard:app --host ${DASHBOARD_HOST} --port ${DASHBOARD_PORT}
 Restart=always
 RestartSec=5
-StandardOutput=append:/home/tinybeaver/traffic_system/logs/ui.log
-StandardError=append:/home/tinybeaver/traffic_system/logs/ui.log
+StandardOutput=append:__REPO_DIR__/logs/ui.log
+StandardError=append:__REPO_DIR__/logs/ui.log
 
 [Install]
 WantedBy=multi-user.target
