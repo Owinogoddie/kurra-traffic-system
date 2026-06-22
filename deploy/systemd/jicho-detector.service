@@ -13,8 +13,9 @@ Environment=RUN_DASHBOARD_IN_MAIN=0
 ExecStart=${PYTHON_BIN} __REPO_DIR__/main.py
 Restart=always
 RestartSec=5
-StandardOutput=append:__REPO_DIR__/logs/detector.log
-StandardError=append:__REPO_DIR__/logs/detector.log
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=jicho-detector
 
 [Install]
 WantedBy=multi-user.target
