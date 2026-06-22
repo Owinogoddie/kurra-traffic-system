@@ -4,6 +4,14 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SERVICE_DIR="$REPO_DIR/deploy/systemd"
 SERVICE_USER="${SUDO_USER:-$USER}"
+PYTHON_BIN="${PYTHON_BIN:-/usr/bin/python3}"
+
+if [[ -f "$REPO_DIR/.env" ]]; then
+  ENV_PYTHON_BIN=$(grep -E '^PYTHON_BIN=' "$REPO_DIR/.env" | tail -n 1 | cut -d '=' -f 2- || true)
+  if [[ -n "$ENV_PYTHON_BIN" ]]; then
+    PYTHON_BIN="$ENV_PYTHON_BIN"
+  fi
+fi
 
 render_unit() {
   local src="$1"
@@ -11,6 +19,7 @@ render_unit() {
   sed \
     -e "s|__REPO_DIR__|$REPO_DIR|g" \
     -e "s|__SERVICE_USER__|$SERVICE_USER|g" \
+    -e "s|__PYTHON_BIN__|$PYTHON_BIN|g" \
     "$src" | sudo tee "$dst" >/dev/null
 }
 
@@ -30,6 +39,7 @@ echo "  /etc/systemd/system/jicho-ui.service"
 echo "Using:"
 echo "  SERVICE_USER=$SERVICE_USER"
 echo "  REPO_DIR=$REPO_DIR"
+echo "  PYTHON_BIN=$PYTHON_BIN"
 echo ""
 echo "Next:"
 echo "  sudo systemctl enable --now jicho-detector.service"

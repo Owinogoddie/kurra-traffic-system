@@ -7,10 +7,9 @@ Wants=network-online.target
 Type=simple
 User=__SERVICE_USER__
 WorkingDirectory=__REPO_DIR__
-Environment=PYTHON_BIN=/usr/bin/python3
 EnvironmentFile=__REPO_DIR__/.env
 Environment=RUN_DASHBOARD_IN_MAIN=0
-ExecStart=${PYTHON_BIN} __REPO_DIR__/main.py
+ExecStart=__PYTHON_BIN__ __REPO_DIR__/main.py
 Restart=always
 RestartSec=5
 StandardOutput=journal
