@@ -1,0 +1,20 @@
+[Unit]
+Description=Jicho Smart Detector Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tinybeaver
+WorkingDirectory=/home/tinybeaver/traffic_system
+Environment=PYTHON_BIN=/usr/bin/python3
+EnvironmentFile=/home/tinybeaver/traffic_system/.env
+Environment=RUN_DASHBOARD_IN_MAIN=0
+ExecStart=${PYTHON_BIN} /home/tinybeaver/traffic_system/main.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/tinybeaver/traffic_system/logs/detector.log
+StandardError=append:/home/tinybeaver/traffic_system/logs/detector.log
+
+[Install]
+WantedBy=multi-user.target
