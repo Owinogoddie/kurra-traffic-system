@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% block title %}Filter — Jicho Smart{% endblock %}
+{% block nav_filter %}active{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="section">
+    <div class="section-title">🔍 Filter Journeys</div>
+
+    <!-- ── Filter controls ── -->
+    <div class="filter-grid">
+      <div class="fg">
+        <label>Camera</label>
+        <select id="f-cam">
+          <option value="">All cameras</option>
+          <option value="cam_101">Cam 101 — Junction Main</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Vehicle type</label>
+        <select id="f-veh">
+          <option value="">All types</option>
+          <option value="car">🚗 Car</option>
+          <option value="truck">🚛 Truck</option>
+          <option value="bus">🚌 Bus</option>
+          <option value="motorcycle">🏍️ Motorcycle</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>From road</label>
+        <select id="f-from">
+          <option value="">Any origin</option>
+          <option value="town">Town</option>
+          <option value="ngong">Ngong</option>
+          <option value="5th_ave">5th Avenue</option>
+          <option value="hospital">Hospital</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>To road</label>
+        <select id="f-to">
+          <option value="">Any destination</option>
+          <option value="town">Town</option>
+          <option value="ngong">Ngong</option>
+          <option value="5th_ave">5th Avenue</option>
+          <option value="hospital">Hospital</option>
+        </select>
+      </div>
+      <div class="fg"><label>Date from</label><input type="date" id="f-df"/></div>
+      <div class="fg"><label>Date to</label>  <input type="date" id="f-dt"/></div>
+      <div class="fg"><label>Time from</label><input type="time" id="f-tf"/></div>
+      <div class="fg"><label>Time to</label>  <input type="time" id="f-tt"/></div>
+    </div>
+
+    <div class="filter-btns">
+      <button class="btn btn-primary"   onclick="search()">Search</button>
+      <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+      <button class="btn btn-export"    onclick="exportCSV()" id="btn-export" style="display:none">⬇ Export CSV</button>
+    </div>
+  </div>
+
+  <!-- ── Results section ── -->
+  <div class="section" id="results-section" style="display:none">
+    <!-- Summary bar -->
+    <div class="result-bar">
+      <div class="result-count" id="count"></div>
+      <div class="per-page-wrap">
+        Rows per page:
+        <select id="per-page" onchange="renderPage(1)">
+          <option value="20">20</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th onclick="sortBy('timestamp')" style="cursor:pointer" title="Sort by time">
+              Time <span id="sort-timestamp"></span>
+            </th>
+            <th onclick="sortBy('camera_id')" style="cursor:pointer">
+              Camera <span id="sort-camera_id"></span>
+            </th>
+            <th onclick="sortBy('vehicle_type')" style="cursor:pointer">
+              Vehicle <span id="sort-vehicle_type"></span>
+            </th>
+            <th>Journey</th>
+            <th onclick="sortBy('track_id')" style="cursor:pointer">
+              Track ID <span id="sort-track_id"></span>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <!-- Initial prompt -->
+  <div class="section" id="empty-prompt">
+    <div style="text-align:center;padding:40px 20px;color:var(--text-muted)">
+      <div style="font-size:2.5rem;margin-bottom:12px">🚦</div>
+      <div style="font-size:0.9rem;font-weight:500">Set your filters above and click <strong style="color:var(--accent)">Search</strong> to view journeys</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Constants ── */
+const RL = { town:"Town", ngong:"Ngong", "5th_ave":"5th Ave", hospital:"Hospital" };
+const today = new Date().toISOString().split("T")[0];
+
+/* ── State ── */
+let allData    = [];
+let filtered   = [];
+let currentPage = 1;
+let sortKey    = "timestamp";
+let sortAsc    = false;
+
+/* ── Init ── */
+document.getElementById("f-df").value = today;
+document.getElementById("f-dt").value = today;
+
+/* ── Badge ── */
+function badge(v){ return `<span class="badge badge-${v}">${v}</span>`; }
+
+/* ── Row HTML ── */
+function rowHtml(j, idx){
+  const from = RL[j.from_road] || j.from_road || "—";
+  const to   = RL[j.to_road]   || j.to_road   || "—";
+  const ts   = new Date(j.timestamp);
+  const dateStr = ts.toLocaleDateString(undefined, {month:"short", day:"numeric", year:"numeric"});
+  const timeStr = ts.toLocaleTimeString(undefined, {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+  return `<tr>
+    <td style="color:var(--text-muted);font-size:0.75rem;font-variant-numeric:tabular-nums">${idx}</td>
+    <td>
+      <div style="font-weight:500">${timeStr}</div>
+      <div style="font-size:0.72rem;color:var(--text-muted)">${dateStr}</div>
+    </td>
+    <td><span style="font-weight:500">${j.camera_id}</span></td>
+    <td>${badge(j.vehicle_type)}</td>
+    <td>
+      <span style="color:var(--text-muted);font-weight:500">${from}</span>
+      <span class="journey-arrow"> → </span>
+      <span style="font-weight:500">${to}</span>
+    </td>
+    <td><span style="font-family:monospace;font-size:0.78rem;background:var(--surface-2);padding:2px 7px;border-radius:4px;color:var(--text-muted)">#${j.track_id}</span></td>
+  </tr>`;
+}
+
+/* ── Sort ── */
+function sortBy(key){
+  if(sortKey === key) sortAsc = !sortAsc;
+  else { sortKey = key; sortAsc = true; }
+
+  // Update indicators
+  ["timestamp","camera_id","vehicle_type","track_id"].forEach(k => {
+    const el = document.getElementById(`sort-${k}`);
+    if(el) el.textContent = k === sortKey ? (sortAsc ? "▲" : "▼") : "";
+  });
+
+  filtered.sort((a,b) => {
+    let va = a[key] ?? "", vb = b[key] ?? "";
+    if(key === "timestamp"){ va = new Date(va); vb = new Date(vb); }
+    if(key === "track_id"){ va = +va; vb = +vb; }
+    if(va < vb) return sortAsc ? -1 : 1;
+    if(va > vb) return sortAsc ?  1 : -1;
+    return 0;
+  });
+  renderPage(1);
+}
+
+/* ── Render a page ── */
+function renderPage(page){
+  const perPage = +document.getElementById("per-page").value;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  currentPage = Math.min(page, totalPages);
+
+  const start = (currentPage - 1) * perPage;
+  const slice = filtered.slice(start, start + perPage);
+
+  // Table body
+  document.getElementById("tbl-body").innerHTML = slice.length
+    ? slice.map((j, i) => rowHtml(j, start + i + 1)).join("")
+    : `<tr><td colspan="6" class="state-cell"><span class="icon">📭</span>No results on this page</td></tr>`;
+
+  // Count bar
+  const total = filtered.length;
+  const s = start + 1, e = Math.min(start + perPage, total);
+  document.getElementById("count").innerHTML =
+    total > 0
+    ? `Showing <strong>${s}–${e}</strong> of <strong>${total}</strong> result${total !== 1 ? "s" : ""}`
+    : `<strong>0</strong> results found`;
+
+  // Pagination
+  renderPagination(totalPages);
+}
+
+/* ── Pagination UI ── */
+function renderPagination(totalPages){
+  const el = document.getElementById("pagination");
+  if(totalPages <= 1){ el.innerHTML = ""; return; }
+
+  const p = currentPage;
+  let html = "";
+
+  // Prev
+  html += `<button onclick="renderPage(${p-1})" ${p===1?"disabled":""}>‹ Prev</button>`;
+
+  // Page numbers with ellipsis
+  const pages = [];
+  if(totalPages <= 7){
+    for(let i=1;i<=totalPages;i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if(p > 4) pages.push("…");
+    for(let i=Math.max(2,p-2); i<=Math.min(totalPages-1,p+2); i++) pages.push(i);
+    if(p < totalPages-3) pages.push("…");
+    pages.push(totalPages);
+  }
+
+  pages.forEach(pg => {
+    if(pg === "…"){
+      html += `<span class="page-info">…</span>`;
+    } else {
+      html += `<button class="${pg===p?"active":""}" onclick="renderPage(${pg})">${pg}</button>`;
+    }
+  });
+
+  // Next
+  html += `<button onclick="renderPage(${p+1})" ${p===totalPages?"disabled":""}>Next ›</button>`;
+
+  el.innerHTML = html;
+}
+
+/* ── Search ── */
+async function search(){
+  const p = new URLSearchParams();
+  const map = {
+    camera_id:"f-cam", vehicle_type:"f-veh",
+    from_road:"f-from", to_road:"f-to",
+    date_from:"f-df",   date_to:"f-dt",
+    time_from:"f-tf",   time_to:"f-tt"
+  };
+  Object.entries(map).forEach(([k,id]) => {
+    const v = document.getElementById(id).value;
+    if(v) p.append(k,v);
+  });
+
+  // Show loading
+  document.getElementById("results-section").style.display = "block";
+  document.getElementById("empty-prompt").style.display    = "none";
+  document.getElementById("tbl-body").innerHTML =
+    `<tr><td colspan="6" class="state-cell"><span class="spinner"></span> Searching…</td></tr>`;
+  document.getElementById("count").innerHTML = "Searching…";
+  document.getElementById("pagination").innerHTML = "";
+  document.getElementById("btn-export").style.display = "none";
+
+  try {
+    const data = await fetch(`/api/filter?${p}`).then(r => r.json());
+    allData = data;
+
+    // Apply current sort
+    filtered = [...data];
+    filtered.sort((a,b) => {
+      let va = a[sortKey] ?? "", vb = b[sortKey] ?? "";
+      if(sortKey === "timestamp"){ va = new Date(va); vb = new Date(vb); }
+      if(sortKey === "track_id"){ va = +va; vb = +vb; }
+      if(va < vb) return sortAsc ? -1 : 1;
+      if(va > vb) return sortAsc ?  1 : -1;
+      return 0;
+    });
+
+    renderPage(1);
+
+    if(data.length > 0){
+      document.getElementById("btn-export").style.display = "inline-block";
+    }
+  } catch(err) {
+    document.getElementById("tbl-body").innerHTML =
+      `<tr><td colspan="6" class="state-cell"><span class="icon">⚠️</span>Error fetching data. Please try again.</td></tr>`;
+    document.getElementById("count").textContent = "";
+  }
+}
+
+/* ── Clear ── */
+function clearFilters(){
+  ["f-cam","f-veh","f-from","f-to","f-tf","f-tt"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("f-df").value = today;
+  document.getElementById("f-dt").value = today;
+  document.getElementById("results-section").style.display = "none";
+  document.getElementById("empty-prompt").style.display    = "block";
+  document.getElementById("btn-export").style.display      = "none";
+  allData = []; filtered = [];
+}
+
+/* ── CSV Export ── */
+function exportCSV(){
+  if(!filtered.length) return;
+  const headers = ["ID","Timestamp","Camera","Track ID","Vehicle Type","From","To"];
+  const rows = filtered.map(j => [
+    j.id,
+    j.timestamp,
+    j.camera_id,
+    j.track_id,
+    j.vehicle_type,
+    RL[j.from_road] || j.from_road,
+    RL[j.to_road]   || j.to_road,
+  ].join(","));
+
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `kurra_journeys_${today}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ── Enter key triggers search ── */
+document.addEventListener("keydown", e => {
+  if(e.key === "Enter") search();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+venv_traffic/
+traffic_streams/
+
+# Model files
+*.pt
+*.engine
+*.onnx
+
+# Snapshots & logs
+snapshots/
+logs/
+
+# Video files
+traffic_streams/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Live Stream — Jicho Smart{% endblock %}
+{% block nav_stream %}active{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="section">
+
+    <div class="section-title">
+      Live stream — Cam 101
+      <span id="stream-status" class="stream-status">connecting…</span>
+    </div>
+
+    <div class="stream-wrap">
+      <img
+        id="stream-img"
+        src="/api/stream/cam_101"
+        alt="Live stream cam_101"
+        onload="onFrameLoad()"
+        onerror="onStreamError()"
+      />
+      <div class="stream-offline" id="stream-offline">
+        📷 Stream offline — retrying…
+      </div>
+    </div>
+
+    <div class="stream-meta">
+      <span>📍 Junction main — Cam 101</span>
+      <span id="stream-fps">— fps</span>
+      <span id="stream-time"></span>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const img      = document.getElementById("stream-img");
+  const offline  = document.getElementById("stream-offline");
+  const statusEl = document.getElementById("stream-status");
+  const fpsEl    = document.getElementById("stream-fps");
+  const timeEl   = document.getElementById("stream-time");
+
+  let frameCount = 0;
+  let retryTimer = null;
+  let isLive     = false;
+
+  function onFrameLoad() {
+    if (!isLive) {
+      isLive                    = true;
+      statusEl.textContent      = "● live";
+      statusEl.style.color      = "#22c55e";
+      img.style.opacity         = "1";
+      offline.style.display     = "none";
+    }
+    frameCount++;
+  }
+
+  function onStreamError() {
+    isLive                  = false;
+    statusEl.textContent    = "○ offline";
+    statusEl.style.color    = "#ef4444";
+    img.style.opacity       = "0";
+    offline.style.display   = "flex";
+
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(() => {
+      statusEl.textContent  = "connecting…";
+      statusEl.style.color  = "";
+      // force browser to reconnect by changing src
+      img.src = "/api/stream/cam_101?" + Date.now();
+      img.style.opacity = "1";
+      offline.style.display = "none";
+    }, 4000);
+  }
+
+  // FPS counter
+  setInterval(() => {
+    fpsEl.textContent = frameCount > 0 ? `${frameCount} fps` : "— fps";
+    frameCount = 0;
+  }, 1000);
+
+  // Clock
+  setInterval(() => {
+    timeEl.textContent = new Date().toLocaleTimeString();
+  }, 1000);
+</script>
+
+<style>
+  .stream-wrap {
+    position:        relative;
+    background:      #000;
+    border-radius:   10px;
+    overflow:        hidden;
+    width:           100%;
+    max-width:       960px;
+    aspect-ratio:    16 / 9;
+    margin:          0 auto;
+  }
+
+  .stream-wrap img {
+    width:           100%;
+    height:          100%;
+    object-fit:      contain;
+    display:         block;
+    opacity:         0;
+    transition:      opacity 0.3s ease;
+  }
+
+  .stream-offline {
+    position:        absolute;
+    inset:           0;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    color:           #666;
+    font-size:       1rem;
+    background:      #0d0d0d;
+  }
+
+  .stream-status {
+    font-size:       0.78rem;
+    font-weight:     500;
+    margin-left:     10px;
+    transition:      color 0.3s;
+  }
+
+  .stream-meta {
+    display:         flex;
+    gap:             2rem;
+    justify-content: center;
+    margin-top:      12px;
+    font-size:       0.82rem;
+    color:           #666;
+  }
+</style>
+{% endblock %}

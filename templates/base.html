@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>{% block title %}Jicho Smart{% endblock %}</title>
+  <link rel="stylesheet" href="/static/theme.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🚦 Jicho Smart</div>
+  <div class="nav-links">
+    <a href="/"          class="{% block nav_live   %}{% endblock %}">Live</a>
+    <!-- <a href="/stream"    class="{% block nav_stream %}{% endblock %}">Stream</a> -->
+    <a href="/snapshots" class="{% block nav_snap   %}{% endblock %}">Cameras</a>
+    <a href="/filter"    class="{% block nav_filter %}{% endblock %}">Filter</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-time" id="clock"></span>
+    <span class="live-badge">● LIVE</span>
+  </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<script>
+  (function tick(){
+    document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+  })();
+  setInterval(() => {
+    document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+  }, 1000);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

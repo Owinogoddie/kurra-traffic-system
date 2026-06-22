@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Cameras — Jicho Smart{% endblock %}
+{% block nav_snap %}active{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="section">
+    <div class="section-title">
+      Camera snapshots
+      <span>auto-refreshes every 2s</span>
+    </div>
+    <div class="snap-grid" id="snap-grid"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CAMS = [
+  { id:"cam_101", label:"Cam 101 — Junction main" },
+];
+
+function render(){
+  document.getElementById("snap-grid").innerHTML = CAMS.map(c => `
+    <div class="snap-card">
+      <img
+        src="/api/snapshot/${c.id}?t=${Date.now()}"
+        alt="${c.label}"
+        onerror="this.outerHTML='<div class=snap-offline>📷 No snapshot yet<br><small>${c.label}</small></div>'"
+      />
+      <div class="snap-info">
+        <span class="snap-cam">${c.label}</span>
+        <span class="snap-time">${new Date().toLocaleTimeString()}</span>
+      </div>
+    </div>
+  `).join("");
+}
+
+render();
+setInterval(render, 1000);
+</script>
+{% endblock %}
